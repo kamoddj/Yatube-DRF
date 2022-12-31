@@ -1,6 +1,6 @@
 from posts.models import Comment, Follow, Group, Post
 from rest_framework import filters, permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework import mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import LimitOffsetPagination
 
@@ -17,18 +17,6 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def perform_update(self, serializer):
-        if serializer.instance.author != self.request.user:
-            raise PermissionDenied(
-                'У вас недостаточно прав для выполнения данного действия.')
-        super(PostViewSet, self).perform_update(serializer)
-
-    def perform_destroy(self, serializer):
-        if serializer.author != self.request.user:
-            raise PermissionDenied(
-                'У вас недостаточно прав для выполнения данного действия.')
-        super(PostViewSet, self).perform_destroy(serializer)
 
     def get_permissions(self):
         if self.action == 'retrieve':
@@ -61,7 +49,8 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, post=post)
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+                    viewsets.GenericViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     permission_classes = (permissions.IsAuthenticated,)
